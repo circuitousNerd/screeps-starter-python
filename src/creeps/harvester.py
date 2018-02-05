@@ -1,3 +1,4 @@
+from creeps.creeps import Creeps
 from defs import *
 
 __pragma__('noalias', 'name')
@@ -10,7 +11,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-class Harvester(object):
+class Harvester(Creeps):
 
     BODY_TYPE = {
         'small': {
@@ -29,22 +30,37 @@ class Harvester(object):
     }
 
     @staticmethod
-    def create_harvester(body, spawn):
-        body_type = Harvester.BODY_TYPE[body]
-        if (body not in BODY_TYPE) and (body_type['price'] >= spawn.room.energyAvailable):
+    def create_creep(body, spawn):
+
+        creep_name = 'harvester' + spawn.name + Game.time
+        role = 'harvester'
+
+        if body in Harvester.BODY_TYPE:
+            body_type = Harvester.BODY_TYPE[body]
+        else:
+            console.log('Invalid body type')
+
+        if body_type['price'] >= spawn.room.energyAvailable:
             console.log(f'Unable to create harvester: {body_type}')
-        elif not spawn.spawning:
-            spawn.spawnCreep(BODY_TYPE[body]['components'], None)
-            console.log('should be spawning a new creep')
+        elif (not spawn.spawning) and (spawn.memory.last_spawn is not role):
+            spawn.memory.last_spawn = role
+            spawn_return = spawn.spawnCreep(body_type['components'], creep_name, {
+                'memory': {
+                    'role': role
+                }
+            })
+            if spawn_return == OK:
+                spawn.memory["last_spawn"] = role
+                console.log(f'should be spawning a new creep named: {creep_name} of size {body_type}')
 
 
     @staticmethod
-    def run_harvester(creep):
+    def run_creep(creep):
         """
         Runs a creep as a generic harvester.
         :param creep: The creep to run
         """
-
+        Creeps.run_creep(creep)
         # If we're full, stop filling up and remove the saved source
         if creep.memory.filling and _.sum(creep.carry) >= creep.carryCapacity:
             creep.memory.filling = False
