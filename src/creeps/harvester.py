@@ -13,27 +13,14 @@ __pragma__('noalias', 'update')
 
 class Harvester(Creeps):
 
-    BODY_TYPE = {
-        'small': {
-            'components': [WORK, CARRY, MOVE, MOVE],
-            'price': 250
-        },
-        'medium': {
-            'components': [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE],
-            'price': 450
-        },
-        'large': {
-            'components': [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY,
-                           MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
-            'price': 900
-        }
-    }
+    MIN_CREEP = 2
+    MAX_CREEP = 10
 
     @staticmethod
-    def create_creep(body, spawn):
+    def create_creep(body, spawn, role):
 
         creep_name = 'harvester' + spawn.name + Game.time
-        role = 'harvester'
+        role = role
 
         if body in Harvester.BODY_TYPE:
             body_type = Harvester.BODY_TYPE[body]
@@ -91,35 +78,56 @@ class Harvester(Creeps):
             if creep.memory.target:
                 target = Game.getObjectById(creep.memory.target)
             else:
-                # Get a random new target.
-                target = _(creep.room.find(FIND_STRUCTURES)) \
-                    .filter(lambda s: ((s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_EXTENSION)
-                                       and s.energy < s.energyCapacity) or s.structureType == STRUCTURE_CONTROLLER) \
-                    .sample()
-                creep.memory.target = target.id
-
-            # If we are targeting a spawn or extension, we need to be directly next to it - otherwise, we can be 3 away.
-            if target.energyCapacity:
-                is_close = creep.pos.isNearTo(target)
-            else:
-                is_close = creep.pos.inRangeTo(target, 3)
-
-            if is_close:
-                # If we are targeting a spawn or extension, transfer energy. Otherwise, use upgradeController on it.
-                if target.energyCapacity:
-                    result = creep.transfer(target, RESOURCE_ENERGY)
-                    if result == OK or result == ERR_FULL:
-                        del creep.memory.target
-                    else:
-                        print("[{}] Unknown result from creep.transfer({}, {}): {}".format(
-                            creep.name, target, RESOURCE_ENERGY, result))
+                # If we have a saved target, use it
+                if creep.memory.target:
+                    target = Game.getObjectById(creep.memory.target)
                 else:
-                    result = creep.upgradeController(target)
-                    if result != OK:
-                        print("[{}] Unknown result from creep.upgradeController({}): {}".format(
-                            creep.name, target, result))
-                    # Let the creeps get a little bit closer than required to the controller, to make room for other creeps.
-                    if not creep.pos.inRangeTo(target, 2):
-                        creep.moveTo(target)
+                    if creep.memory.role is "controller_harvester":
+                        # Get a random new target.
+                        target = _(creep.room.find(FIND_STRUCTURES)) \
+                            .filter(
+                            lambda s: (s.structureType == STRUCTURE_CONTROLLER)).sample()
+                        creep.memory.target = target.id
+
+                    if creep.memory.role is "harvester":
+                        # If we have a saved target, use it
+                        if creep.memory.target:
+                            target = Game.getObjectById(creep.memory.target)
+                        else:
+                            # Get a random new target.
+                            target = _(creep.room.find(FIND_STRUCTURES)) \
+                                .filter(lambda s: ((
+                                        s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_EXTENSION)
+                                       and s.energy < s.energyCapacity)) \
+                                .sample()
+                            creep.memory.target = target.id
+
+        # If we are targeting a spawn or extension, we need to be directly next to it - otherwise, we can be 3 away.
+        if target.structureType is STRUCTURE_CONTROLLER:
+            is_close = creep.pos.inRangeTo(target, 3)
+        else:
+            is_close = creep.pos.isNearTo(target)
+
+        if is_close:
+            # If we are targeting a spawn or extension, transfer energy. Otherwise, use upgradeController on it.
+            if target.structureType is STRUCTURE_CONTROLLER:
+                result = creep.upgradeController(target)
+                if result != OK:
+                    pass
+                    print("[{}] Unknown result from creep.upgradeController({}): {}".format(
+                        creep.name, target, result))
+                # Let the creeps get a little bit closer than required to the controller,
+                # to make room for other creeps.
+                if not creep.pos.inRangeTo(target, 2):
+                    creep.moveTo(target)
+
             else:
-                creep.moveTo(target)
+                console.log(f'we shsould be transferring to {target}')
+                result = creep.transfer(target, RESOURCE_ENERGY)
+                if result == OK or result == ERR_FULL:
+                    del creep.memory.target
+                else:
+                    print("[{}] Unknown result from creep.transfer({}, {}): {}".format(
+                        creep.name, target, RESOURCE_ENERGY, result))
+        else:
+            creep.moveTo(target)
