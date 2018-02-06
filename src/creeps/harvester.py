@@ -86,27 +86,22 @@ class Harvester(Creeps):
                         # Get a random new target.
                         target = _(creep.room.find(FIND_STRUCTURES)) \
                             .filter(
-                            lambda s: (s.structureType == STRUCTURE_CONTROLLER)).sample()
+                                lambda s: (s.structureType == STRUCTURE_CONTROLLER)).sample()
                         creep.memory.target = target.id
 
                     if creep.memory.role is "harvester":
-                        # If we have a saved target, use it
-                        if creep.memory.target:
-                            target = Game.getObjectById(creep.memory.target)
-                        else:
-                            # Get a random new target.
-                            target = _(creep.room.find(FIND_STRUCTURES)) \
-                                .filter(lambda s: ((
-                                        s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_EXTENSION)
-                                       and s.energy < s.energyCapacity)) \
-                                .sample()
-                            creep.memory.target = target.id
+                        # Get a random new target.
+                        target = _(creep.room.find(FIND_STRUCTURES)) \
+                            .filter(
+                                lambda s: (s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_CONTAINER)
+                        ).sample()
+                        creep.memory.target = target.id
 
-        # If we are targeting a spawn or extension, we need to be directly next to it - otherwise, we can be 3 away.
-        if target.structureType is STRUCTURE_CONTROLLER:
-            is_close = creep.pos.inRangeTo(target, 3)
-        else:
-            is_close = creep.pos.isNearTo(target)
+            # If we are targeting a spawn or extension, we need to be directly next to it - otherwise, we can be 3 away.
+            if target.structureType is STRUCTURE_CONTROLLER:
+                is_close = creep.pos.inRangeTo(target, 3)
+            else:
+                is_close = creep.pos.isNearTo(target)
 
         if is_close:
             # If we are targeting a spawn or extension, transfer energy. Otherwise, use upgradeController on it.

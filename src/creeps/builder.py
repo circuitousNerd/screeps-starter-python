@@ -20,29 +20,8 @@ __pragma__('noalias', 'update')
 
 class Builder(Harvester):
 
-    @staticmethod
-    def create_creep(body, spawn):
-
-        role = 'builder'
-        creep_name = role + spawn.name + Game.time
-
-        if body in Harvester.BODY_TYPE:
-            body_type = Harvester.BODY_TYPE[body]
-        else:
-            console.log('Invalid body type')
-
-        if body_type['price'] >= spawn.room.energyAvailable:
-            console.log(f'Unable to create harvester: {body_type}')
-        elif (not spawn.spawning) and (spawn.memory.last_spawn is not role):
-            spawn.memory.last_spawn = role
-            spawn_return = spawn.spawnCreep(body_type['components'], creep_name, {
-                'memory': {
-                    'role': role
-                }
-            })
-            if spawn_return is OK:
-                spawn.memory["last_spawn"] = role
-                console.log(f'should be spawning a new creep named: {creep_name} of size {body_type}')
+    MIN_CREEP = 2
+    MAX_CREEP = 10
 
     @staticmethod
     def run_creep(creep):
@@ -90,7 +69,8 @@ class Builder(Harvester):
             if creep.pos.isNearTo(construction_site):
                 result = creep.build(construction_site)
                 if result != OK:
-                    print("[{}] Unknown result from creep.build({}): {}".format(creep.name, construction_site, result))
+                    console.log(
+                        "[{}] Unknown result from creep.build({}): {}".format(creep.name, construction_site, result))
             else:
                 creep.moveTo(construction_site)
 
